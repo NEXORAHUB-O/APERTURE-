@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APERTURE — Modular Voice Synthesizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171513;
+    --panel: #24211e;
+    --panel-raised: #2c2925;
+    --ink: #ece6da;
+    --muted: #7a7368;
+    --amber: #e29b3f;
+    --teal: #4e9e96;
+    --hairline: rgba(236,230,218,0.09);
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--amber); color:var(--bg);}
+  a{color:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:3px;}
+
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:26px 28px; max-width:1080px; margin:0 auto;
+  }
+  .brand{
+    font-family:var(--font-display); font-weight:800; font-size:20px;
+    letter-spacing:0.14em; text-transform:uppercase;
+  }
+  .brand span{color:var(--amber);}
+  .nav-sub{font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.08em;}
+
+  /* ---------- HERO ---------- */
+  header.hero{padding:36px 0 20px;}
+  .hero-label{
+    font-family:var(--font-mono); font-size:12px; color:var(--teal);
+    letter-spacing:0.18em; text-transform:uppercase; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .hero-label::before{
+    content:''; width:7px; height:7px; border-radius:50%; background:var(--teal);
+    box-shadow:0 0 8px var(--teal);
+  }
+  h1{
+    font-family:var(--font-display); font-weight:800;
+    font-size:clamp(48px, 9vw, 96px); line-height:0.92;
+    letter-spacing:-0.01em; text-transform:uppercase;
+    max-width:760px;
+  }
+  h1 em{font-style:normal; color:var(--amber);}
+  .hero-sub{
+    font-size:17px; color:var(--muted); max-width:480px; margin-top:18px;
+  }
+
+  /* ---------- SYNTH PANEL ---------- */
+  .panel{
+    margin:44px 0 20px;
+    background:var(--panel);
+    border-radius:14px;
+    border:1px solid var(--hairline);
+    padding:clamp(18px,3vw,34px);
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .panel-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap:wrap; gap:16px; margin-bottom:20px;
+  }
+  .panel-id{font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.08em;}
+  .panel-id b{color:var(--ink);}
+
+  .power-btn{
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:999px; padding:8px 16px 8px 12px;
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.06em;
+    color:var(--muted); transition:color .2s;
+  }
+  .power-dot{
+    width:9px; height:9px; border-radius:50%; background:#5a5348;
+    transition:background .25s, box-shadow .25s;
+  }
+  .power-btn.on{color:var(--ink);}
+  .power-btn.on .power-dot{background:var(--amber); box-shadow:0 0 10px var(--amber);}
+
+  /* Scope */
+  .scope-wrap{
+    background:#100f0d; border-radius:8px; border:1px solid var(--hairline);
+    padding:14px; margin-bottom:22px; position:relative;
+  }
+  .scope-label{
+    position:absolute; top:14px; left:20px; font-family:var(--font-mono);
+    font-size:10px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase;
+  }
+  canvas#scope{width:100%; height:150px; display:block; border-radius:4px;}
+
+  /* Controls row */
+  .controls{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:18px; margin-bottom:24px;
+  }
+  .ctrl{
+    background:var(--panel-raised); border-radius:10px; padding:16px 14px;
+    border:1px solid var(--hairline); text-align:center;
+  }
+  .ctrl-label{
+    font-family:var(--font-mono); font-size:10px; color:var(--muted);
+    letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px;
+  }
+  .knob{
+    width:52px; height:52px; border-radius:50%; margin:0 auto 8px;
+    background: radial-gradient(circle at 35% 30%, #3a352e, #1c1a17 70%);
+    border:1px solid var(--hairline);
+    position:relative; cursor:grab; touch-action:none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .knob:active{cursor:grabbing;}
+  .knob::after{
+    content:''; position:absolute; top:5px; left:50%; width:2px; height:16px;
+    background:var(--amber); transform-origin:1px 21px;
+    transform:translateX(-50%) rotate(var(--rot,-135deg));
+    border-radius:2px;
+  }
+  .ctrl-val{font-family:var(--font-mono); font-size:11px; color:var(--teal);}
+
+  .wave-select{display:flex; gap:6px; justify-content:center; flex-wrap:wrap;}
+  .wave-btn{
+    background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
+    font-family:var(--font-mono); font-size:11px; padding:8px 10px; border-radius:6px;
+    transition:all .15s;
+  }
+  .wave-btn.active{color:var(--bg); background:var(--teal); border-color:var(--teal);}
+
+  /* Keyboard */
+  .keyboard{display:flex; gap:5px; height:120px;}
+  .key{
+    flex:1; background:linear-gradient(180deg, #f2ede2, #d9d2c3);
+    border-radius:0 0 6px 6px; border:1px solid #00000022;
+    display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px;
+    font-family:var(--font-mono); font-size:10px; color:#5a5347;
+    user-select:none; transition:transform .05s, background .05s;
+  }
+  .key:active, .key.pressed{
+    background:linear-gradient(180deg, var(--amber), #c47f2e); color:#241c0f; transform:translateY(2px);
+  }
+
+  .hint{
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+    margin-top:14px; text-align:center;
+  }
+
+  /* ---------- PATCH STORAGE ---------- */
+  .patch-panel{
+    margin-top:26px; padding-top:22px; border-top:1px solid var(--hairline);
+  }
+  .patch-head{
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:10px; margin-bottom:6px;
+  }
+  .patch-title{
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+    letter-spacing:0.12em; text-transform:uppercase;
+  }
+  .patch-note{
+    font-family:var(--font-mono); font-size:10.5px; color:var(--muted);
+    margin-bottom:14px; line-height:1.6;
+  }
+  #loggedOutView, #loggedInView, .signin-row, .patch-name-row, .patch-file-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .user-pill{
+    font-family:var(--font-mono); font-size:11px; color:var(--teal); letter-spacing:0.04em;
+  }
+  .mini-btn{
+    background:var(--panel-raised); border:1px solid var(--hairline); color:var(--muted);
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase;
+    padding:8px 12px; border-radius:6px; transition:all .15s; white-space:nowrap; cursor:pointer;
+  }
+  .mini-btn:hover{color:var(--ink); border-color:var(--muted);}
+  .mini-btn.accent{background:var(--teal); border-color:var(--teal); color:var(--bg);}
+  .mini-btn.accent:hover{opacity:0.88;}
+  .mini-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .mini-btn:disabled:hover{color:var(--muted); border-color:var(--hairline);}
+  .mini-btn.tiny{padding:5px 9px; font-size:10px;}
+  .mini-input{
+    background:var(--panel); border:1px solid var(--hairline); color:var(--ink);
+    font-family:var(--font-mono); font-size:11.5px; padding:9px 11px; border-radius:6px;
+    flex:1; min-width:120px;
+  }
+  .mini-input:focus{border-color:var(--teal);}
+  .patch-name-row{margin:14px 0 10px;}
+  .patch-file-row{margin-bottom:6px;}
+  .patch-list{display:flex; flex-direction:column; gap:6px; margin:8px 0 4px;}
+  .patch-item{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:6px;
+    padding:9px 12px; font-family:var(--font-mono); font-size:11.5px; color:var(--ink);
+  }
+  .patch-item-actions{display:flex; gap:6px;}
+  .patch-empty{
+    font-family:var(--font-mono); font-size:11px; color:var(--muted); padding:10px 2px;
+  }
+  .patch-status{
+    font-family:var(--font-mono); font-size:11px; min-height:15px; margin-top:6px;
+  }
+
+  /* ---------- SIGNAL CHAIN ---------- */
+  section.chain{padding:70px 0;}
+  .eyebrow{
+    font-family:var(--font-mono); font-size:12px; color:var(--teal);
+    letter-spacing:0.16em; text-transform:uppercase; margin-bottom:10px;
+  }
+  h2{
+    font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+    font-size:clamp(30px,4vw,44px); margin-bottom:34px; letter-spacing:-0.01em;
+  }
+  .chain-diagram{
+    display:flex; align-items:center; gap:0; flex-wrap:wrap;
+  }
+  .chain-node{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:10px;
+    padding:20px 22px; min-width:150px; flex:1;
+  }
+  .chain-node h3{
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em;
+    color:var(--amber); text-transform:uppercase; margin-bottom:8px;
+  }
+  .chain-node p{font-size:13px; color:var(--muted); font-family:var(--font-mono); line-height:1.6;}
+  .chain-arrow{
+    color:var(--muted); font-family:var(--font-mono); font-size:20px;
+    padding:0 14px; flex-shrink:0;
+  }
+
+  /* ---------- SPECS ---------- */
+  section.specs{padding:20px 0 70px;}
+  .spec-table{width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:13px;}
+  .spec-table tr{border-bottom:1px solid var(--hairline);}
+  .spec-table td{padding:16px 8px; }
+  .spec-table td:first-child{color:var(--muted); width:38%; text-transform:uppercase; letter-spacing:0.06em; font-size:11px;}
+
+  /* ---------- CTA ---------- */
+  section.cta{padding:60px 0 100px; text-align:center;}
+  .price{
+    font-family:var(--font-display); font-size:clamp(56px,10vw,110px);
+    font-weight:800; color:var(--amber); line-height:1;
+  }
+  .price sup{font-size:0.35em; top:-1.2em; color:var(--muted); font-family:var(--font-mono);}
+  .cta-copy{color:var(--muted); max-width:420px; margin:16px auto 30px;}
+  .order-btn{
+    background:var(--amber); color:#1c1610; border:none; padding:16px 38px;
+    font-family:var(--font-mono); font-size:13px; letter-spacing:0.08em; text-transform:uppercase;
+    border-radius:999px; font-weight:500; transition:transform .15s, box-shadow .15s;
+  }
+  .order-btn:hover{transform:translateY(-2px); box-shadow:0 10px 24px -8px rgba(226,155,63,0.5);}
+
+  footer{
+    border-top:1px solid var(--hairline); padding:26px 0; text-align:center;
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+  }
+
+  @media (max-width:640px){
+    .chain-diagram{flex-direction:column; align-items:stretch;}
+    .chain-arrow{transform:rotate(90deg); align-self:center; padding:6px 0;}
+    .keyboard{height:90px;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">APERTURE <span>·02</span></div>
+  <div class="nav-sub">MODULAR VOICE SYNTH</div>
+</nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-label">Live in browser — audio engine running on Web Audio API</div>
+    <h1>Sound you can<br><em>actually touch.</em></h1>
+    <p class="hero-sub">Aperture is a single-voice modular synthesizer. The panel below isn't a picture of one — it's wired to a real oscillator, filter, and amplifier. Power it on and play.</p>
+  </header>
+
+  <div class="panel">
+    <div class="panel-top">
+      <div class="panel-id">APERTURE·02 &nbsp;<b>SIGNAL PATH A</b> &nbsp;SERIAL 0X4F19</div>
+      <button class="power-btn" id="powerBtn"><span class="power-dot"></span><span id="powerText">POWER OFF</span></button>
+    </div>
+
+    <div class="scope-wrap">
+      <span class="scope-label">Oscilloscope · Ch A</span>
+      <canvas id="scope" width="900" height="150"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <div class="ctrl-label">Waveform</div>
+        <div class="wave-select" id="waveSelect">
+          <button class="wave-btn active" data-wave="sine">SIN</button>
+          <button class="wave-btn" data-wave="sawtooth">SAW</button>
+          <button class="wave-btn" data-wave="square">SQR</button>
+          <button class="wave-btn" data-wave="triangle">TRI</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-label">Cutoff</div>
+        <div class="knob" id="knobCutoff" data-min="200" data-max="8000" data-val="4000" data-curve="log"></div>
+        <div class="ctrl-val" id="valCutoff">4000 Hz</div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-label">Resonance</div>
+        <div class="knob" id="knobRes" data-min="0" data-max="20" data-val="1"></div>
+        <div class="ctrl-val" id="valRes">1.0 Q</div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-label">Output</div>
+        <div class="knob" id="knobVol" data-min="0" data-max="1" data-val="0.5"></div>
+        <div class="ctrl-val" id="valVol">50%</div>
+      </div>
+    </div>
+
+    <div class="keyboard" id="keyboard">
+      <div class="key" data-note="261.63">C</div>
+      <div class="key" data-note="293.66">D</div>
+      <div class="key" data-note="329.63">E</div>
+      <div class="key" data-note="349.23">F</div>
+      <div class="key" data-note="392.00">G</div>
+      <div class="key" data-note="440.00">A</div>
+      <div class="key" data-note="493.88">B</div>
+      <div class="key" data-note="523.25">C</div>
+    </div>
+    <div class="hint">Click a key to play, or use your keyboard: A S D F G H J K — power must be on</div>
+
+    <div class="patch-panel">
+      <div class="patch-head">
+        <span class="patch-title">Patches</span>
+        <div id="authArea">
+          <div id="loggedOutView">
+            <button class="mini-btn" id="signInBtn" type="button">Sign in / Sign up</button>
+          </div>
+          <div id="loggedInView" style="display:none;">
+            <span class="user-pill" id="userPill"></span>
+            <button class="mini-btn" id="signOutBtn" type="button">Sign out</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="patch-note">Create an account to save patches online. Your patches follow you across devices. File download/load also works without an account.</p>
+
+      <div class="signin-row" id="signinRow" style="display:none;">
+        <input type="email" class="mini-input" id="signinEmail" placeholder="Email" autocomplete="email">
+        <input type="password" class="mini-input" id="signinPass" placeholder="Password" autocomplete="current-password">
+        <button class="mini-btn accent" id="signinSubmit" type="button">Sign in</button>
+        <button class="mini-btn" id="signupSubmit" type="button">Create account</button>
+      </div>
+
+      <div class="patch-name-row">
+        <input type="text" class="mini-input" id="patchNameInput" placeholder="Patch name">
+        <button class="mini-btn accent" id="savePatchBtn" type="button" disabled>Save to account</button>
+      </div>
+
+      <div class="patch-list" id="patchList"></div>
+
+      <div class="patch-file-row">
+        <button class="mini-btn" id="downloadPatchBtn" type="button">Download .json</button>
+        <label class="mini-btn" for="loadPatchFile">Load from file</label>
+        <input type="file" id="loadPatchFile" accept="application/json,.json" style="display:none;">
+      </div>
+
+      <div class="patch-status" id="patchStatus"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="chain">
+    <div class="eyebrow">Signal Flow</div>
+    <h2>One voice,<br>three stages.</h2>
+    <div class="chain-diagram">
+      <div class="chain-node">
+        <h3>01 · Oscillator</h3>
+        <p id="chainOsc">Waveform: sine<br>Generates the raw tone from key press.</p>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-node">
+        <h3>02 · Filter</h3>
+        <p id="chainFilt">Lowpass · 4000 Hz<br>Shapes brightness and edge.</p>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-node">
+        <h3>03 · Amplifier</h3>
+        <p id="chainAmp">Level: 50%<br>Sets loudness before output.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="specs">
+    <div class="eyebrow">Datasheet</div>
+    <h2>Specification</h2>
+    <table class="spec-table">
+      <tr><td>Voice architecture</td><td>Monophonic, single oscillator + resonant lowpass filter</td></tr>
+      <tr><td>Waveforms</td><td>Sine, sawtooth, square, triangle</td></tr>
+      <tr><td>Filter type</td><td>2-pole resonant lowpass, 200 Hz – 8 kHz sweep</td></tr>
+      <tr><td>Envelope</td><td>Fixed fast-attack, short-release voltage envelope</td></tr>
+      <tr><td>Keyboard range</td><td>C4 – C5, mouse or A–K computer keys</td></tr>
+      <tr><td>Engine</td><td>Runs natively in-browser via Web Audio API — no plugins</td></tr>
+      <tr><td>Enclosure</td><td>Brushed aluminum, walnut end cheeks</td></tr>
+    </table>
+  </section>
+
+  <section class="cta">
+    <div class="price">Free</div>
+    <p class="cta-copy">No install, no signup — just open the page. The panel above is the full interface: same knobs, same signal path, same voice.</p>
+    <button class="order-btn">Play it now</button>
+  </section>
+</div>
+
+<footer>APERTURE INSTRUMENTS — DESIGNED &amp; BUILT FOR ONE VOICE AT A TIME</footer>
+
+<script>
+(function(){
+  let ctx, filter, masterGain, analyser, activeVoices = {};
+  let currentWave = 'sine';
+  const scopeCanvas = document.getElementById('scope');
+  const scopeCtx = scopeCanvas.getContext('2d');
+  let poweredOn = false;
+  let rafId;
+
+  function initAudio(){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 4000;
+    filter.Q.value = 1;
+
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.5;
+
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+
+    filter.connect(masterGain);
+    masterGain.connect(analyser);
+    analyser.connect(ctx.destination);
+  }
+
+  function drawScope(){
+    rafId = requestAnimationFrame(drawScope);
+    const w = scopeCanvas.width, h = scopeCanvas.height;
+    scopeCtx.fillStyle = '#100f0d';
+    scopeCtx.fillRect(0,0,w,h);
+
+    if(!poweredOn || !analyser){
+      // flat idle line
+      scopeCtx.strokeStyle = 'rgba(122,115,104,0.4)';
+      scopeCtx.lineWidth = 1.5;
+      scopeCtx.beginPath();
+      scopeCtx.moveTo(0,h/2);
+      scopeCtx.lineTo(w,h/2);
+      scopeCtx.stroke();
+      return;
+    }
+    const bufferLength = analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
+    analyser.getByteTimeDomainData(dataArray);
+
+    scopeCtx.lineWidth = 2;
+    scopeCtx.strokeStyle = '#4e9e96';
+    scopeCtx.shadowColor = '#4e9e96';
+    scopeCtx.shadowBlur = 6;
+    scopeCtx.beginPath();
+    const sliceWidth = w / bufferLength;
+    let x = 0;
+    for(let i=0;i<bufferLength;i++){
+      const v = dataArray[i] / 128.0;
+      const y = v * h/2;
+      if(i===0) scopeCtx.moveTo(x,y); else scopeCtx.lineTo(x,y);
+      x += sliceWidth;
+    }
+    scopeCtx.stroke();
+    scopeCtx.shadowBlur = 0;
+  }
+  drawScope();
+
+  function resizeCanvas(){
+    const rect = scopeCanvas.getBoundingClientRect();
+    scopeCanvas.width = rect.width * 2;
+    scopeCanvas.height = rect.height * 2;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  setTimeout(resizeCanvas, 50);
+
+  // Power
+  const powerBtn = document.getElementById('powerBtn');
+  const powerText = document.getElementById('powerText');
+  powerBtn.addEventListener('click', function(){
+    const firstInit = !ctx;
+    if(!ctx) initAudio();
+    if(ctx.state === 'suspended') ctx.resume();
+    if(firstInit){
+      // push whatever the knobs currently show (e.g. from a loaded patch) into the new audio nodes
+      cutoffKnobCtrl.refresh();
+      resKnobCtrl.refresh();
+      volKnobCtrl.refresh();
+    }
+    poweredOn = !poweredOn;
+    powerBtn.classList.toggle('on', poweredOn);
+    powerText.textContent = poweredOn ? 'POWER ON' : 'POWER OFF';
+    if(!poweredOn){
+      Object.keys(activeVoices).forEach(stopNote);
+    }
+  });
+
+  // Waveform select
+  document.querySelectorAll('.wave-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.wave-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentWave = btn.dataset.wave;
+      document.getElementById('chainOsc').innerHTML = 'Waveform: '+currentWave+'<br>Generates the raw tone from key press.';
+    });
+  });
+
+  // Knobs
+  function setupKnob(el, onChange, formatter, curve){
+    let dragging = false, startY = 0, startVal = parseFloat(el.dataset.val);
+    const min = parseFloat(el.dataset.min), max = parseFloat(el.dataset.max);
+
+    function valToRot(v){
+      let pct;
+      if(curve === 'log'){
+        const lmin = Math.log(min), lmax = Math.log(max);
+        pct = (Math.log(v) - lmin) / (lmax - lmin);
+      } else {
+        pct = (v - min) / (max - min);
+      }
+      return -135 + pct*270;
+    }
+    function apply(v){
+      v = Math.max(min, Math.min(max, v));
+      el.dataset.val = v;
+      el.style.setProperty('--rot', valToRot(v)+'deg');
+      onChange(v);
+    }
+    apply(startVal);
+
+    function move(clientY){
+      const delta = startY - clientY;
+      let range = max - min;
+      let newVal;
+      if(curve === 'log'){
+        const lmin = Math.log(min), lmax = Math.log(max);
+        const startPct = (Math.log(startVal)-lmin)/(lmax-lmin);
+        const pct = startPct + delta/200;
+        newVal = Math.exp(lmin + pct*(lmax-lmin));
+      } else {
+        newVal = startVal + (delta/150)*range;
+      }
+      apply(newVal);
+    }
+
+    el.addEventListener('pointerdown', function(e){
+      dragging = true; startY = e.clientY; startVal = parseFloat(el.dataset.val);
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', function(e){ if(dragging) move(e.clientY); });
+    el.addEventListener('pointerup', function(){ dragging = false; });
+    el.addEventListener('pointercancel', function(){ dragging = false; });
+
+    return {
+      set: apply,
+      refresh: function(){ apply(parseFloat(el.dataset.val)); }
+    };
+  }
+
+  const cutoffKnobCtrl = setupKnob(document.getElementById('knobCutoff'), function(v){
+    if(filter) filter.frequency.setTargetAtTime(v, ctx.currentTime, 0.01);
+    document.getElementById('valCutoff').textContent = Math.round(v)+' Hz';
+    document.getElementById('chainFilt').innerHTML = 'Lowpass · '+Math.round(v)+' Hz<br>Shapes brightness and edge.';
+  }, null, 'log');
+
+  const resKnobCtrl = setupKnob(document.getElementById('knobRes'), function(v){
+    if(filter) filter.Q.setTargetAtTime(v, ctx.currentTime, 0.01);
+    document.getElementById('valRes').textContent = v.toFixed(1)+' Q';
+  });
+
+  const volKnobCtrl = setupKnob(document.getElementById('knobVol'), function(v){
+    if(masterGain) masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+    document.getElementById('valVol').textContent = Math.round(v*100)+'%';
+    document.getElementById('chainAmp').innerHTML = 'Level: '+Math.round(v*100)+'%<br>Sets loudness before output.';
+  });
+
+  // Keyboard notes
+  function playNote(id, freq, keyEl){
+    if(!poweredOn || !ctx) return;
+    if(activeVoices[id]) return;
+    const osc = ctx.createOscillator();
+    osc.type = currentWave;
+    osc.frequency.value = freq;
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.setValueAtTime(0, ctx.currentTime);
+    voiceGain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 0.01);
+    osc.connect(voiceGain);
+    voiceGain.connect(filter);
+    osc.start();
+    activeVoices[id] = {osc, voiceGain};
+    if(keyEl) keyEl.classList.add('pressed');
+  }
+  function stopNote(id, keyEl){
+    const v = activeVoices[id];
+    if(!v) return;
+    const now = ctx.currentTime;
+    v.voiceGain.gain.cancelScheduledValues(now);
+    v.voiceGain.gain.setValueAtTime(v.voiceGain.gain.value, now);
+    v.voiceGain.gain.linearRampToValueAtTime(0, now + 0.15);
+    v.osc.stop(now + 0.16);
+    delete activeVoices[id];
+    if(keyEl) keyEl.classList.remove('pressed');
+    else document.querySelectorAll('.key.pressed').forEach(k=>k.classList.remove('pressed'));
+  }
+
+  document.querySelectorAll('.key').forEach(function(key, i){
+    const freq = parseFloat(key.dataset.note);
+    const id = 'mouse-'+i;
+    key.addEventListener('pointerdown', function(){ playNote(id, freq, key); });
+    key.addEventListener('pointerup', function(){ stopNote(id, key); });
+    key.addEventListener('pointerleave', function(){ stopNote(id, key); });
+  });
+
+  const keyMap = {'a':0,'s':1,'d':2,'f':3,'g':4,'h':5,'j':6,'k':7};
+  const keyEls = document.querySelectorAll('.key');
+  window.addEventListener('keydown', function(e){
+    const idx = keyMap[e.key.toLowerCase()];
+    if(idx === undefined || e.repeat) return;
+    const el = keyEls[idx];
+    playNote('kb-'+idx, parseFloat(el.dataset.note), el);
+  });
+  window.addEventListener('keyup', function(e){
+    const idx = keyMap[e.key.toLowerCase()];
+    if(idx === undefined) return;
+    const el = keyEls[idx];
+    stopNote('kb-'+idx, el);
+  });
+
+  // ---------------------------------------------------------------
+  // PATCHES — Supabase authentication + cloud patch storage
+  // ---------------------------------------------------------------
+  function slugify(str){
+    return (str || '').toString().trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '').slice(0, 40);
+  }
+
+  function escapeHtml(s){
+    return (s || '').toString().replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  let currentUser = null;
+
+  const loggedOutView = document.getElementById('loggedOutView');
+  const loggedInView = document.getElementById('loggedInView');
+  const userPill = document.getElementById('userPill');
+  const signInBtn = document.getElementById('signInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const signinRow = document.getElementById('signinRow');
+  const signinEmail = document.getElementById('signinEmail');
+  const signinPass = document.getElementById('signinPass');
+  const signinSubmit = document.getElementById('signinSubmit');
+  const signupSubmit = document.getElementById('signupSubmit');
+  const patchNameInput = document.getElementById('patchNameInput');
+  const savePatchBtn = document.getElementById('savePatchBtn');
+  const patchList = document.getElementById('patchList');
+  const patchStatus = document.getElementById('patchStatus');
+
+  function setStatus(msg, isError){
+    patchStatus.textContent = msg || '';
+    patchStatus.style.color = isError ? '#c9705a' : 'var(--teal)';
+  }
+
+  function renderAuthState(){
+    if(currentUser){
+      loggedOutView.style.display = 'none';
+      loggedInView.style.display = 'flex';
+      userPill.textContent = '● ' + (currentUser.email || 'Account');
+      savePatchBtn.disabled = false;
+      loadPatchList();
+    }else{
+      loggedOutView.style.display = 'flex';
+      loggedInView.style.display = 'none';
+      savePatchBtn.disabled = true;
+      patchList.innerHTML = '<div class="patch-empty">Sign in to save patches to your account.</div>';
+    }
+  }
+
+  signInBtn.addEventListener('click', function(){
+    signinRow.style.display = signinRow.style.display === 'flex' ? 'none' : 'flex';
+    if(signinRow.style.display === 'flex') signinEmail.focus();
+  });
+
+  signOutBtn.addEventListener('click', async function(){
+    const { error } = await supabaseClient.auth.signOut();
+    if(error){ setStatus(error.message, true); return; }
+    currentUser = null;
+    renderAuthState();
+    setStatus('Signed out.');
+  });
+
+  signinSubmit.addEventListener('click', async function(){
+    const email = signinEmail.value.trim();
+    const password = signinPass.value;
+    if(!email || !password){
+      setStatus('Enter your email and password.', true);
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email, password
+    });
+
+    if(error){
+      setStatus(error.message, true);
+      return;
+    }
+
+    currentUser = data.user;
+    signinRow.style.display = 'none';
+    signinEmail.value = '';
+    signinPass.value = '';
+    renderAuthState();
+    setStatus('Signed in successfully.');
+  });
+
+  signupSubmit.addEventListener('click', async function(){
+    const email = signinEmail.value.trim();
+    const password = signinPass.value;
+
+    if(!email || password.length < 6){
+      setStatus('Use a valid email and a password of at least 6 characters.', true);
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password
+    });
+
+    if(error){
+      setStatus(error.message, true);
+      return;
+    }
+
+    if(data.session){
+      currentUser = data.user;
+      signinRow.style.display = 'none';
+      signinEmail.value = '';
+      signinPass.value = '';
+      renderAuthState();
+      setStatus('Account created and signed in.');
+    }else{
+      setStatus('Account created. Check your email to confirm it, then sign in.');
+    }
+  });
+
+  function getCurrentPatchData(name){
+    return {
+      name: name,
+      wave: currentWave,
+      cutoff: parseFloat(document.getElementById('knobCutoff').dataset.val),
+      resonance: parseFloat(document.getElementById('knobRes').dataset.val),
+      volume: parseFloat(document.getElementById('knobVol').dataset.val),
+      savedAt: Date.now()
+    };
+  }
+
+  function applyPatchData(data){
+    if(!data) return;
+
+    if(data.wave){
+      currentWave = data.wave;
+      document.querySelectorAll('.wave-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.wave === data.wave);
+      });
+      document.getElementById('chainOsc').innerHTML =
+        'Waveform: ' + currentWave + '<br>Generates the raw tone from key press.';
+    }
+
+    if(typeof data.cutoff === 'number') cutoffKnobCtrl.set(data.cutoff);
+    if(typeof data.resonance === 'number') resKnobCtrl.set(data.resonance);
+    if(typeof data.volume === 'number') volKnobCtrl.set(data.volume);
+  }
+
+  savePatchBtn.addEventListener('click', async function(){
+    if(!currentUser){
+      setStatus('Sign in first to save to your account.', true);
+      return;
+    }
+
+    const rawName = patchNameInput.value.trim() || 'untitled';
+    const patch = getCurrentPatchData(rawName);
+
+    const { error } = await supabaseClient
+      .from('patches')
+      .upsert({
+        user_id: currentUser.id,
+        name: patch.name,
+        wave: patch.wave,
+        cutoff: patch.cutoff,
+        resonance: patch.resonance,
+        volume: patch.volume
+      }, { onConflict: 'user_id,name' });
+
+    if(error){
+      setStatus(error.message, true);
+      return;
+    }
+
+    patchNameInput.value = '';
+    setStatus('Saved "' + rawName + '" to your account.');
+    loadPatchList();
+  });
+
+  async function loadPatchList(){
+    if(!currentUser) return;
+
+    patchList.innerHTML = '<div class="patch-empty">Loading…</div>';
+
+    const { data, error } = await supabaseClient
+      .from('patches')
+      .select('id,name,wave,cutoff,resonance,volume,created_at')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    if(error){
+      patchList.innerHTML = '<div class="patch-empty">Could not load patches.</div>';
+      setStatus(error.message, true);
+      return;
+    }
+
+    if(!data || data.length === 0){
+      patchList.innerHTML = '<div class="patch-empty">No saved patches yet.</div>';
+      return;
+    }
+
+    patchList.innerHTML = '';
+
+    data.forEach(function(item){
+      const row = document.createElement('div');
+      row.className = 'patch-item';
+
+      row.innerHTML =
+        '<span>' + escapeHtml(item.name || 'untitled') + '</span>' +
+        '<span class="patch-item-actions">' +
+        '<button class="mini-btn tiny" type="button">Load</button>' +
+        '<button class="mini-btn tiny" type="button">Del</button>' +
+        '</span>';
+
+      const buttons = row.querySelectorAll('button');
+
+      buttons[0].addEventListener('click', function(){
+        applyPatchData(item);
+        setStatus('Loaded "' + item.name + '".');
+      });
+
+      buttons[1].addEventListener('click', async function(){
+        const { error } = await supabaseClient
+          .from('patches')
+          .delete()
+          .eq('id', item.id)
+          .eq('user_id', currentUser.id);
+
+        if(error){
+          setStatus(error.message, true);
+          return;
+        }
+
+        setStatus('Deleted "' + item.name + '".');
+        loadPatchList();
+      });
+
+      patchList.appendChild(row);
+    });
+  }
+
+  // File export / import works independently of account storage.
+  document.getElementById('downloadPatchBtn').addEventListener('click', function(){
+    const rawName = patchNameInput.value.trim() || 'aperture-patch';
+    const data = getCurrentPatchData(rawName);
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (slugify(rawName) || 'aperture-patch') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus('Downloaded "' + a.download + '".');
+  });
+
+  document.getElementById('loadPatchFile').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(evt){
+      try{
+        const data = JSON.parse(evt.target.result);
+        applyPatchData(data);
+        setStatus('Loaded "' + (data.name || file.name) + '" from file.');
+      }catch(err){
+        setStatus('Could not read that file.', true);
+      }
+    };
+
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  async function initAuth(){
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if(error){
+      setStatus('Authentication is not configured yet. Add your Supabase URL and anon key.', true);
+      return;
+    }
+
+    currentUser = data.session ? data.session.user : null;
+    renderAuthState();
+
+    supabaseClient.auth.onAuthStateChange(function(_event, session){
+      currentUser = session ? session.user : null;
+      renderAuthState();
+    });
+  }
+
+  initAuth();
+
+    setStatus('Signed out.');
+  });
+
+  signinSubmit.addEventListener('click', async function(){
+    const nameRaw = signinName.value;
+    const pass = signinPass.value;
+    const slug = slugify(nameRaw);
+    if(!slug || !pass){
+      setStatus('Enter a name and a passphrase.', true);
+      return;
+    }
+    const key = 'profile:' + slug;
+    try{
+      let existing = null;
+      try{
+        const res = await window.storage.get(key, false);
+        existing = res ? JSON.parse(res.value) : null;
+      }catch(e){ existing = null; }
+
+      if(existing){
+        if(existing.passphrase !== pass){
+          setStatus('Wrong passphrase for that name.', true);
+          return;
+        }
+      } else {
+        await window.storage.set(key, JSON.stringify({passphrase: pass, createdAt: Date.now()}), false);
+      }
+      currentUser = slug;
+      currentUserDisplay = nameRaw.trim();
+      signinRow.style.display = 'none';
+      signinName.value = ''; signinPass.value = '';
+      renderAuthState();
+      setStatus('Signed in as ' + currentUserDisplay + '.');
+    }catch(e){
+      setStatus('Could not reach account storage. Try again.', true);
+    }
+  });
+
+  function getCurrentPatchData(name){
+    return {
+      name: name,
+      wave: currentWave,
+      cutoff: parseFloat(document.getElementById('knobCutoff').dataset.val),
+      resonance: parseFloat(document.getElementById('knobRes').dataset.val),
+      volume: parseFloat(document.getElementById('knobVol').dataset.val),
+      savedAt: Date.now()
+    };
+  }
+
+  function applyPatchData(data){
+    if(!data) return;
+    if(data.wave){
+      currentWave = data.wave;
+      document.querySelectorAll('.wave-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.wave === data.wave);
+      });
+      document.getElementById('chainOsc').innerHTML = 'Waveform: ' + currentWave + '<br>Generates the raw tone from key press.';
+    }
+    if(typeof data.cutoff === 'number') cutoffKnobCtrl.set(data.cutoff);
+    if(typeof data.resonance === 'number') resKnobCtrl.set(data.resonance);
+    if(typeof data.volume === 'number') volKnobCtrl.set(data.volume);
+  }
+
+  savePatchBtn.addEventListener('click', async function(){
+    if(!currentUser || !hasStorage()){
+      setStatus('Sign in first to save to your account.', true);
+      return;
+    }
+    const rawName = patchNameInput.value.trim() || 'untitled';
+    const slug = slugify(rawName) || ('patch-' + Date.now());
+    const key = 'patch:' + currentUser + ':' + slug;
+    try{
+      await window.storage.set(key, JSON.stringify(getCurrentPatchData(rawName)), false);
+      setStatus('Saved "' + rawName + '" to your account.');
+      patchNameInput.value = '';
+      loadPatchList();
+    }catch(e){
+      setStatus('Save failed. Try again.', true);
+    }
+  });
+
+  async function loadPatchList(){
+    if(!currentUser || !hasStorage()) return;
+    patchList.innerHTML = '<div class="patch-empty">Loading…</div>';
+    try{
+      const res = await window.storage.list('patch:' + currentUser + ':', false);
+      const keys = (res && res.keys) || [];
+      if(keys.length === 0){
+        patchList.innerHTML = '<div class="patch-empty">No saved patches yet.</div>';
+        return;
+      }
+      patchList.innerHTML = '';
+      for(const key of keys){
+        let item;
+        try{ item = await window.storage.get(key, false); }catch(e){ continue; }
+        if(!item) continue;
+        let data;
+        try{ data = JSON.parse(item.value); }catch(e){ continue; }
+        const row = document.createElement('div');
+        row.className = 'patch-item';
+        row.innerHTML = '<span>' + escapeHtml(data.name || 'untitled') + '</span>' +
+          '<span class="patch-item-actions">' +
+          '<button class="mini-btn tiny" type="button">Load</button>' +
+          '<button class="mini-btn tiny" type="button">Del</button>' +
+          '</span>';
+        const rowButtons = row.querySelectorAll('button');
+        rowButtons[0].addEventListener('click', function(){
+          applyPatchData(data);
+          setStatus('Loaded "' + data.name + '".');
+        });
+        rowButtons[1].addEventListener('click', async function(){
+          try{
+            await window.storage.delete(key, false);
+            setStatus('Deleted "' + data.name + '".');
+            loadPatchList();
+          }catch(e){
+            setStatus('Delete failed.', true);
+          }
+        });
+        patchList.appendChild(row);
+      }
+    }catch(e){
+      patchList.innerHTML = '<div class="patch-empty">Could not load patches.</div>';
+    }
+  }
+
+  // File export / import — plain browser download, works with or without the cloud storage above
+  document.getElementById('downloadPatchBtn').addEventListener('click', function(){
+    const rawName = patchNameInput.value.trim() || 'aperture-patch';
+    const data = getCurrentPatchData(rawName);
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (slugify(rawName) || 'aperture-patch') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus('Downloaded "' + a.download + '".');
+  });
+
+  document.getElementById('loadPatchFile').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt){
+      try{
+        const data = JSON.parse(evt.target.result);
+        applyPatchData(data);
+        setStatus('Loaded "' + (data.name || file.name) + '" from file.');
+      }catch(err){
+        setStatus('Could not read that file.', true);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  renderAuthState();
+})();
+</script>
+
+</body>
+</html>
